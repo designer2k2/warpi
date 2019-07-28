@@ -119,9 +119,10 @@ while True:
 	
     cpu = psutil.cpu_percent()
     mem = dict(psutil.virtual_memory()._asdict())['percent']
+    swp = dict(psutil.swap_memory()._asdict())['percent']
     ct = 0 #psutil.sensors_temperatures()['cpu-thermal'][0]._asdict()['current']
 	
-    draw.text((0, 0),'CPU:  {:>3.0%}   M: {:>3.0%} T: {:>3}°C'.format(cpu/100,mem/100, int(ct)),font=font, fill=255)
+    draw.text((0, 0),'CPU:  {:>3.0%}   M: {:>3.0%} Swp: {:>3.0%}'.format(cpu/100,mem/100, swp/100),font=font, fill=255)
     draw.text((0, 54),strftime("%Y-%m-%d   %H:%M:%S", localtime()),font=font, fill=255)	
 
     if gpsrun:
@@ -130,7 +131,9 @@ while True:
         draw.text((0, 10),'GPS:  ' + str(packet.mode) + '  SAT:  ' + str(packet.sats) + '  USED:  ' + str(packet.sats_valid),font=font, fill=255)
         conn = kismet_rest.KismetConnector(username='root',password='toor')
         devices = conn.system_status()['kismet.system.devices.count']
+        kismetmemory = conn.system_status()['kismet.system.memory.rss']
         draw.text((0, 20),'D {:>7}'.format(devices),font=fontbig, fill=255)
+        draw.text((0, 44),'Kismet mem: {:>4.0f}mb'.format(kismetmemory/1000),font=font, fill=255)
 	
     if button_U.value: # button is released
         a = 1
