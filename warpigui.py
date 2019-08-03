@@ -1,12 +1,19 @@
+#!/usr/bin/python3
+#encoding=utf-8
+
 # Menue for the wigle/replacement device
 # https://www.designer2k2.at 2019
 #
 # Libs:
 # gpsd https://github.com/MartijnBraam/gpsd-py3
-# kismet_rest with pip3
-# kismet site conf must be correct! 
+# kismet_rest with pip
+#
+#
+#
+# kismet conf must be correct! 
+# gpsd will be called, check that it works with UART
 
-#fake cpuinfo and ensure RTC is read in:
+#fake cpuinfo:
 from subprocess import call
 call("sudo mount -v --bind /root/fake-cpuinfo /proc/cpuinfo", shell=True)
 call("hwclock -s", shell=True)
@@ -22,6 +29,11 @@ from time import sleep, localtime, strftime
 import gpsd
 import kismet_rest
 import psutil 
+from os import listdir
+import os
+
+#the konverter tool:
+import kismettowigle
 
 # Create the I2C interface.
 i2c = busio.I2C(board.SCL, board.SDA)
@@ -81,7 +93,7 @@ draw.rectangle((0, 0, width, height), outline=0, fill=0)
 
 # Load a font
 font = ImageFont.truetype('/home/pi/Minecraftia.ttf', 8)
-fontbig = ImageFont.truetype('/home/pi/Minecraftia.ttf', 24)
+fontbig = ImageFont.truetype('/home/pi/arial.ttf', 24)
 
 # set country code
 # call("iw reg set AT", shell=True)
@@ -90,21 +102,44 @@ gpsrun = False
 life = True
 sleeptime = 1
 
+#this delay will be waited, then it starts automatically
+autostart = 10
+autostarted = False
+
 def startservice():
+    print("Starting GPSD / Kismet")
     call("gpsd /dev/serial0", shell=True)
-    #call("monstart", shell=True)
     call("sleep 1", shell=True)
     call('screen -dm bash -c "kismet"', shell=True)
-    #call('screen -dm bash -c "kismet -c wlan0mon -c wlan2 -c wlan4"', shell=True)
     global gpsrun
     gpsrun = True
 	
 def stopservice():
+    print("Stopping GPSD / Kismet")
     global gpsrun
     gpsrun = False
     call("killall gpsd", shell=True)
     call("killall kismet", shell=True)
-    #call("monstop", shell=True)
+	
+def list_files1(directory, extension):
+    return (f for f in listdir(directory) if f.endswith('.' + extension))
+	
+def convertall():
+    print("Convert kismets")
+    #only do this when the kismet it not running
+    if not gpsrun:
+        list = list_files1('/','kismet')
+        
+        for them in list:
+            #print(them)
+            csvfilename = (''.join(them.split('.')[:-1])) + ('.CSV')
+            #print(csvfilename)
+            if not os.path.exists('/'+csvfilename):
+                print("CSV not found, create it "+str(csvfilename))
+                kismettowigle.main('/'+them)
+    print("Convert from all done")
+
+print("All setup, go into loop")
 
 while True:
 
@@ -126,73 +161,62 @@ while True:
     draw.text((0, 54),strftime("%Y-%m-%d   %H:%M:%S", localtime()),font=font, fill=255)	
 
     if gpsrun:
-        gpsd.connect()
-        packet = gpsd.get_current()		
-        draw.text((0, 10),'GPS:  ' + str(packet.mode) + '  SAT:  ' + str(packet.sats) + '  USED:  ' + str(packet.sats_valid),font=font, fill=255)
-        conn = kismet_rest.KismetConnector(username='root',password='toor')
-        devices = conn.system_status()['kismet.system.devices.count']
-        kismetmemory = conn.system_status()['kismet.system.memory.rss']
-        draw.text((0, 20),'D {:>7}'.format(devices),font=fontbig, fill=255)
-        draw.text((0, 44),'Kismet mem: {:>4.0f}mb'.format(kismetmemory/1000),font=font, fill=255)
+        try:
+            gpsd.connect()
+            packet = gpsd.get_current()		
+            draw.text((0, 10),'GPS:  ' + str(packet.mode) + '  SAT:  ' + str(packet.sats) + '  USED:  ' + str(packet.sats_valid),font=font, fill=255)
+            conn = kismet_rest.KismetConnector(username='root',password='toor')
+            devices = conn.system_status()['kismet.system.devices.count']
+            kismetmemory = conn.system_status()['kismet.system.memory.rss']
+            draw.text((0, 20),'D {:>7}'.format(devices),font=fontbig, fill=255)
+            draw.text((0, 44),'Kismet mem: {:>4.0f}mb'.format(kismetmemory/1000),font=font, fill=255)
+        except:
+            print("An exception occurred " + str(gpsrun)) 
 	
-    if button_U.value: # button is released
-        a = 1
-        #draw.polygon([(90, 20), (95, 10), (100, 20)], outline=255, fill=0)  #Up
-    else: # button is pressed:
-        #draw.polygon([(90, 20), (95, 10), (100, 20)], outline=255, fill=1)  #Up filled
-        #disp.show()
+    if not autostarted:	
+        if autostart > 0:
+            autostart =	autostart -1
+        else:
+            autostarted = True
+            if not gpsrun:
+                startservice()
+	
+    if not button_U.value: # button is pressed
         stopservice()
 
-    #if button_L.value: # button is released
-        #draw.polygon([(0, 30), (18, 21), (18, 41)], outline=255, fill=0)  #left
-    #else: # button is pressed:
-        #draw.polygon([(0, 30), (18, 21), (18, 41)], outline=255, fill=1)  #left filled
+	#this scans for *kismet files and corresponding .csv, walk all that have no csv
+    if not button_L.value: # button is pressed
+        convertall()
 
     #if button_R.value: # button is released
         #draw.polygon([(60, 30), (42, 21), (42, 41)], outline=255, fill=0) #right
     #else: # button is pressed:
         #draw.polygon([(60, 30), (42, 21), (42, 41)], outline=255, fill=1) #right filled
 
-    if button_D.value: # button is released
-        #draw.polygon([(95, 60), (100, 42), (90, 42)], outline=255, fill=0) #down
-        a = 1
-    else: # button is pressed:
-        #draw.polygon([(95, 60), (100, 42), (90, 42)], outline=255, fill=1) #down filled
-        #disp.show()
+    if not button_D.value: # button is pressed
         startservice()
 
-    if button_C.value: # button is released
-        #draw.rectangle((20, 22, 40, 40), outline=255, fill=0) #center
-        a = 1
-    else: # button is pressed:
-        #draw.rectangle((20, 22, 40, 40), outline=255, fill=1) #center filled
+    if not button_C.value: # button is pressed
         call("hwclock -s", shell=True)
         print("time should be adjusted now")
 
-    if button_A.value: # button is released
-        a = 1
-        #draw.ellipse((100, 40, 110, 60), outline=255, fill=0) #A button
-    else: # button is pressed:
-        #draw.ellipse((100, 40, 110, 60), outline=255, fill=1) #A button filled
+    if not button_A.value: # button is pressed
         disp.fill(0)
         disp.show()
         call("reboot", shell=True)
         quit()
 
 
-    if button_B.value: # button is released
-	    a=1
-        #draw.ellipse((110, 20, 120, 40), outline=125, fill=0) #B button
-    else: # button is pressed:
-        #draw.ellipse((110, 20, 120, 40), outline=125, fill=1) #B button filled
+    if not button_B.value: # button is pressed
+        convertall()
         disp.fill(0)
         disp.show()
         call("sudo shutdown -h now", shell=True)
         quit()
 
+	#draw the screen:
     disp.image(image)
-
     disp.show()
 
+	#wait a bit:
     sleep(sleeptime)
-
