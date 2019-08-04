@@ -9,7 +9,6 @@
 # kismet_rest with pip
 #
 #
-#
 # kismet conf must be correct! 
 # gpsd will be called, check that it works with UART
 
@@ -22,7 +21,6 @@ import board
 import busio
 import Adafruit_GPIO.Platform as Platform
 import Adafruit_GPIO.I2C as I2C
-from digitalio import DigitalInOut, Direction, Pull
 from PIL import Image, ImageDraw, ImageFont
 import adafruit_ssd1306
 from time import sleep, localtime, strftime
@@ -31,6 +29,7 @@ import kismet_rest
 import psutil 
 from os import listdir
 import os
+import RPi.GPIO as GPIO  
 
 #the konverter tool:
 import kismettowigle
@@ -45,35 +44,48 @@ disp = adafruit_ssd1306.SSD1306_I2C(128, 64, i2c)
 #flip screen that the usb ports from the rpi are on top
 disp.rotation = 2
 
-# Input pins:
-button_A = DigitalInOut(board.D5)
-button_A.direction = Direction.INPUT
-button_A.pull = Pull.UP
- 
-button_B = DigitalInOut(board.D6)
-button_B.direction = Direction.INPUT
-button_B.pull = Pull.UP
- 
-button_L = DigitalInOut(board.D27)
-button_L.direction = Direction.INPUT
-button_L.pull = Pull.UP
- 
-button_R = DigitalInOut(board.D23)
-button_R.direction = Direction.INPUT
-button_R.pull = Pull.UP
- 
-button_U = DigitalInOut(board.D17)
-button_U.direction = Direction.INPUT
-button_U.pull = Pull.UP
- 
-button_D = DigitalInOut(board.D22)
-button_D.direction = Direction.INPUT
-button_D.pull = Pull.UP
- 
-button_C = DigitalInOut(board.D4)
-button_C.direction = Direction.INPUT
-button_C.pull = Pull.UP
+# Input Pin:
+GPIO.setmode(GPIO.BCM) 
 
+# Interrupts:
+Counter = 0
+def InterruptLeft(channel):
+    global Counter
+    # Counter um eins erhoehen und ausgeben
+    Counter = Counter + 1
+    print("Counter " + str(Counter))
+
+def InterruptB(channel):
+    fshutdown()
+
+def InterruptA(channel):
+    freboot()	
+
+def InterruptUp(channel):
+    startservice()
+
+def InterruptDown(channel):
+    stopservice()
+	
+#6 button A reboot
+GPIO.setup(5, GPIO.IN, pull_up_down=GPIO.PUD_UP)  
+GPIO.add_event_detect(5, GPIO.RISING, callback=InterruptA, bouncetime=300) 
+	
+#6 button B shutdown
+GPIO.setup(6, GPIO.IN, pull_up_down=GPIO.PUD_UP)  
+GPIO.add_event_detect(6, GPIO.RISING, callback=InterruptB, bouncetime=300) 
+
+#Up dir button start
+GPIO.setup(22, GPIO.IN, pull_up_down=GPIO.PUD_UP)  
+GPIO.add_event_detect(22, GPIO.RISING, callback=InterruptUp, bouncetime=300)
+
+#Down dir button stop
+GPIO.setup(17, GPIO.IN, pull_up_down=GPIO.PUD_UP)  
+GPIO.add_event_detect(17, GPIO.RISING, callback=InterruptDown, bouncetime=300)
+
+#Left dir button (only to check)
+GPIO.setup(23, GPIO.IN, pull_up_down=GPIO.PUD_UP)  
+GPIO.add_event_detect(23, GPIO.RISING, callback=InterruptLeft, bouncetime=300)
 
 # Clear display.
 disp.fill(0)
@@ -121,6 +133,23 @@ def stopservice():
     call("killall gpsd", shell=True)
     call("killall kismet", shell=True)
 	
+def freboot():
+    disp.fill(0)
+    disp.show()
+    call("sleep 1", shell=True)
+    call("reboot", shell=True)
+    quit()
+
+def fshutdown():
+    call("killall kismet", shell=True)
+    call("sleep 1", shell=True)
+    convertall()
+    call("sleep 1", shell=True)
+    disp.fill(0)
+    disp.show()
+    call("sudo shutdown -h now", shell=True)
+    quit()
+		
 def list_files1(directory, extension):
     return (f for f in listdir(directory) if f.endswith('.' + extension))
 	
@@ -180,39 +209,6 @@ while True:
             autostarted = True
             if not gpsrun:
                 startservice()
-	
-    if not button_U.value: # button is pressed
-        stopservice()
-
-	#this scans for *kismet files and corresponding .csv, walk all that have no csv
-    if not button_L.value: # button is pressed
-        convertall()
-
-    #if button_R.value: # button is released
-        #draw.polygon([(60, 30), (42, 21), (42, 41)], outline=255, fill=0) #right
-    #else: # button is pressed:
-        #draw.polygon([(60, 30), (42, 21), (42, 41)], outline=255, fill=1) #right filled
-
-    if not button_D.value: # button is pressed
-        startservice()
-
-    if not button_C.value: # button is pressed
-        call("hwclock -s", shell=True)
-        print("time should be adjusted now")
-
-    if not button_A.value: # button is pressed
-        disp.fill(0)
-        disp.show()
-        call("reboot", shell=True)
-        quit()
-
-
-    if not button_B.value: # button is pressed
-        convertall()
-        disp.fill(0)
-        disp.show()
-        call("sudo shutdown -h now", shell=True)
-        quit()
 
 	#draw the screen:
     disp.image(image)
