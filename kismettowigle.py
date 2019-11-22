@@ -13,27 +13,36 @@ import os
 import json
 import sqlite3
 from datetime import datetime
+import logging
+import errno
+
+logger = logging.getLogger(__name__)
 
 def main(fname):
 
-	print("Processing: %s" % fname)
+	logger.info("Processing: %s" % fname)
+	
+	if not os.path.exists(fname):
+		logger.error("Kismet DB not found!! "+str(fname))
+		raise FileNotFoundError(
+			errno.ENOENT, os.strerror(errno.ENOENT), fname)
 
 	conn = sqlite3.connect(fname)
 	c = conn.cursor()
 	
-	#first clean up:
-	c.execute('VACUUM')	
+	#first clean up: (this takes forever on slow media(usb sticks)
+	#c.execute('VACUUM')	
 
 	#first lets see what we have:
 	c.execute('SELECT * FROM KISMET')
-	print (c.fetchone())
+	logger.debug (c.fetchone())
 
-	c.execute('SELECT device FROM devices WHERE phyname="IEEE802.11" AND type="Wi-Fi AP" AND min_lat != 0')
+	c.execute('SELECT device,avg_lat,avg_lon FROM devices WHERE phyname="IEEE802.11" AND type="Wi-Fi AP" AND min_lat != 0')
 
 	dataextract = c.fetchall()
 	
 	outfilename = (''.join(fname.split('.')[:-1])) + ('.CSV')
-	print("saving to %s" % outfilename)
+	logger.debug("saving to %s" % outfilename)
 
 	outfile = open(outfilename, 'w')
 		
@@ -55,8 +64,8 @@ def main(fname):
 		first = str(datetime.fromtimestamp(jsonextract['kismet.device.base.first_time']))
 		chan = jsonextract['kismet.device.base.channel']
 		rssi = jsonextract['kismet.device.base.signal']['kismet.common.signal.max_signal']
-		lat = jsonextract['kismet.device.base.location']['kismet.common.location.avg_loc']['kismet.common.location.lat']
-		lon = jsonextract['kismet.device.base.location']['kismet.common.location.avg_loc']['kismet.common.location.lon']
+		lat = row[1]
+		lon = row[2]
 		alt = jsonextract['kismet.device.base.location']['kismet.common.location.avg_loc']['kismet.common.location.alt']
 
 		#write a line
@@ -68,9 +77,11 @@ def main(fname):
 		
 	#now the bluetooth:
 
-	c.execute('SELECT device FROM devices WHERE phyname="Bluetooth" AND min_lat != 0')
+	c.execute('SELECT device,avg_lat,avg_lon FROM devices WHERE phyname="Bluetooth" AND min_lat != 0')
 
 	dataextract = c.fetchall()
+	
+	lines2 = 0
 
 	for row in dataextract:
 		jsonextract = json.loads(row[0])
@@ -83,8 +94,8 @@ def main(fname):
 		first = str(datetime.fromtimestamp(jsonextract['kismet.device.base.first_time']))
 		chan = 10
 		rssi = 0
-		lat = jsonextract['kismet.device.base.location']['kismet.common.location.avg_loc']['kismet.common.location.lat']
-		lon = jsonextract['kismet.device.base.location']['kismet.common.location.avg_loc']['kismet.common.location.lon']
+		lat = row[1]
+		lon = row[2]
 		alt = jsonextract['kismet.device.base.location']['kismet.common.location.avg_loc']['kismet.common.location.alt']
 		what = jsonextract['kismet.device.base.type']
 		
@@ -95,12 +106,12 @@ def main(fname):
 
 		#write a line
 		outfile.write(mac+','+ssid+','+auth+','+first+','+str(chan)+','+str(rssi)+','+str(lat)+','+str(lon)+','+str(alt)+',0,'+what+'\n')
-		lines = lines + 1
+		lines2 = lines2 + 1
 
 
 	outfile.close()
 
-	print("all done " + str(lines))
+	logger.debug("File done. " + str(lines) + " WIFI Devices, " + str(lines2) + " Bluetooth Devices.")
 	
 def print_usage():
 	print("Usage: *.kismet *.kismet *.kismet... ")
