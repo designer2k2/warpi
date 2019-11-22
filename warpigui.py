@@ -15,15 +15,15 @@
 import logging
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
-                    datefmt='%m-%d %H:%M',
-					filename='warpi.log')
+                    datefmt='%Y-%m-%d %H:%M',
+					filename='/media/usb/warpi.log')
 
 logging.info('Startup')
 
 #fake cpuinfo:
-from subprocess import call
-call("sudo mount -v --bind /root/fake-cpuinfo /proc/cpuinfo", shell=True)
-call("hwclock -s", shell=True)
+import subprocess
+subprocess.call("sudo mount -v --bind /root/fake-cpuinfo /proc/cpuinfo", shell=True)
+subprocess.run(["hwclock", "-s"])
 
 logging.debug('HW Clock synced')
 
@@ -39,6 +39,7 @@ import kismet_rest
 import psutil 
 from os import listdir
 import os
+import signal
 import RPi.GPIO as GPIO  
 
 #the konverter tool:
@@ -137,24 +138,40 @@ gpsrun = False
 life = True
 sleeptime = 1
 
+#globals for the log:
+kisuselog = open("/media/usb/kisuselog.log","w")    # new everytime
+kiserrlog = open("/media/usb/kiserrlog.log","a+")  # append
+kissubproc = 0
+
 #this delay will be waited, then it starts automatically
 autostart = 10
 autostarted = False
 
 def startservice():
     logging.info("Starting GPSD / Kismet")
-    call("gpsd /dev/serial0", shell=True)
-    call("sleep 1", shell=True)
-    call('screen -dm bash -c "kismet"', shell=True)
-    global gpsrun
+    #call("gpsd /dev/serial0", shell=True)
+    subprocess.Popen(["gpsd", "/dev/serial0"])
+    #call('screen -dm bash -c "kismet"', shell=True)
+    global kisuselog, kiserrlog, gpsrun, kissubproc
+    kissubproc = subprocess.Popen(["kismet"],stdout=kisuselog,stderr=kiserrlog)
     gpsrun = True
 	
 def stopservice():
     logging.info("Stopping GPSD / Kismet")
-    global gpsrun
+    global gpsrun, kissubproc	
     gpsrun = False
-    call("killall gpsd", shell=True)
-    call("killall kismet", shell=True)
+    #call("killall kismet", shell=True)
+    #Send a polite INT (CTRL+C)
+    kissubproc.send_signal(signal.SIGINT)
+    try:
+        kissubproc.wait(10)  #wait max 10sec to close
+    except subprocess.TimeoutExpired:
+        logging.debug("timeout during kill kismet happened")
+    try:
+        subprocess.run(["killall", "gpsd", "--verbose", "--wait", "--signal", "QUIT"],timeout=5)
+    except subprocess.TimeoutExpired:
+        logging.debug("timeout during kill gpsd happened")
+	
 	
 def freboot():
     logging.info("Rebooting")
@@ -162,15 +179,17 @@ def freboot():
     looping = False
     disp.fill(0)
     disp.show()
-    call("sleep 1", shell=True)
-    call("reboot", shell=True)
+    subprocess.Popen(["reboot"])
     quit()
 
 def fshutdown():
-    global looping
+    global looping,kisuselog, kiserrlog
     looping = False
     logging.info("Shutdown")
-    call("killall kismet", shell=True)
+    stopservice()
+    kisuselog.close()
+    kiserrlog.close()
+    #call("killall kismet", shell=True)
     #call("sleep 1", shell=True)
     logging.debug("Kismet shutdown")
     draw.rectangle((0, 0, width, height), outline=0, fill=0)
@@ -183,8 +202,7 @@ def fshutdown():
     disp.image(image)	
     disp.show()
     logging.debug("LCD Black")
-    call("sleep 1", shell=True)
-    call("sudo shutdown -h now", shell=True)
+    subprocess.call("sudo shutdown -h now", shell=True)
     logging.debug("shutdown -h triggered")
     quit()
 		
@@ -195,15 +213,15 @@ def convertall():
     logging.debug("Convert kismets")
     #only do this when the kismet it not running
     if not gpsrun:
-        list = list_files1('/','kismet')
+        list = list_files1('/media/usb/kismet/','kismet')
         
         for them in list:
             #print(them)
             csvfilename = (''.join(them.split('.')[:-1])) + ('.CSV')
             #print(csvfilename)
-            if not os.path.exists('/'+csvfilename):
-                logging.debug("CSV not found, create it "+str(csvfilename))
-                kismettowigle.main('/'+them)
+            if not os.path.exists('/media/usb/kismet/'+csvfilename):
+                logging.debug("CSV from Kismet not found, create it "+str(csvfilename))
+                kismettowigle.main('/media/usb/kismet/'+them)
     logging.debug("Convert from all done")
 
 logging.debug('All setup, go into loop')
@@ -213,7 +231,7 @@ looping = True
 while looping:
 
     draw.rectangle((0, 0, width, height), outline=0, fill=0)
-	
+
     if life:
         draw.rectangle((120, 56, width, height), outline=0, fill=255)
         life = False
@@ -225,6 +243,13 @@ while looping:
     mem = dict(psutil.virtual_memory()._asdict())['percent']
     swp = dict(psutil.swap_memory()._asdict())['percent']
     ct = 0 #psutil.sensors_temperatures()['cpu-thermal'][0]._asdict()['current']
+    
+    if cpu > 50:
+        subprocess.call("ps aux | sort -nrk 3,3 | head -n 10 >> /media/usb/highcpu.log", shell=True)
+        logging.debug("High CPU: " + str(cpu))
+        sleeptime = 3
+    else:
+        sleeptime = 1
 	
     draw.text((0, 0),'CPU:  {:>3.0%}   M: {:>3.0%} Swp: {:>3.0%}'.format(cpu/100,mem/100, swp/100),font=font, fill=255)
     draw.text((0, 54),strftime("%Y-%m-%d   %H:%M:%S", localtime()),font=font, fill=255)	
