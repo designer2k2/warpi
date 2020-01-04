@@ -11,6 +11,12 @@
 #
 # kismet conf must be correct! 
 # gpsd will be called, check that it works with UART
+#
+# it expects a USB drive on /media/usb/ with the folder kismet there.
+# Logs will be written to /media/usb/
+#
+# Warning:
+# there are only some failsafes, it will stop working on error!
 
 import logging
 logging.basicConfig(level=logging.DEBUG,
