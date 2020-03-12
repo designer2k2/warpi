@@ -12,5 +12,5 @@ KismetCaptureFreaklabsZigbee==2018.7.0
 KismetCaptureRtl433==2019.9.1
 KismetCaptureRtladsb==2019.10.1
 KismetCaptureRtlamr==2019.10.1
-psutil==5.6.5
+psutil==5.6.6
 RPi.GPIO==0.7.0
