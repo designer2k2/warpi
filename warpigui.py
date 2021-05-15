@@ -8,7 +8,6 @@
 #
 # Libs:
 # gpsd https://github.com/MartijnBraam/gpsd-py3
-# kismet_rest with pip
 #
 #
 # kismet conf must be correct!
@@ -45,12 +44,13 @@ from PIL import Image, ImageDraw, ImageFont
 import adafruit_ssd1306
 from time import sleep, localtime, strftime
 import gpsd
-import kismet_rest
 import psutil
 from os import listdir
 import os
 import signal
 import RPi.GPIO as GPIO
+import json
+import requests
 
 # the konverter tool:
 import kismettowigle
@@ -166,7 +166,7 @@ autostarted = False
 
 def startservice():
     logging.info("Starting GPSD / Kismet")
-    subprocess.Popen(["gpsd", "/dev/serial0"])
+    subprocess.Popen(["gpsd", "/dev/serial0", "-s", "9600"])
     global kisuselog, kiserrlog, gpsrun, kissubproc
     kissubproc = subprocess.Popen(["kismet"], stdout=kisuselog, stderr=kiserrlog)
     gpsrun = True
@@ -279,7 +279,7 @@ while looping:
 
     draw.text(
         (0, 0),
-        "CPU: {:>3.0%}  M: {:>3.0%} T: {:4.1f}".format(cpu / 100, mem / 100, ct),
+        "CPU: {:>4.0%}  M: {:>4.0%} T: {:5.1f}".format(cpu / 100, mem / 100, ct),
         font=font,
         fill=255,
     )
@@ -293,12 +293,9 @@ while looping:
             packet = gpsd.get_current()
             draw.text(
                 (0, 10),
-                "GPS: "
-                + str(packet.mode)
-                + " SAT: "
-                + str(packet.sats)
-                + " Use: "
-                + str(packet.sats_valid),
+                "GPS:  {:>3}  SAT:  {:>3}  Use:  {:>3}".format(
+                    packet.mode, packet.sats, packet.sats_valid
+                ),
                 font=font,
                 fill=255,
             )
@@ -310,13 +307,16 @@ while looping:
                 draw.rectangle((120, 18, width - 4, 14), outline=255, fill=1)
             if packet.mode == 3:
                 draw.rectangle((115, 20, width - 2, 10), outline=255, fill=1)
-            conn = kismet_rest.KismetConnector(username="root", password="toor")
-            devices = conn.system_status()["kismet.system.devices.count"]
-            kismetmemory = conn.system_status()["kismet.system.memory.rss"]
+            resp = requests.get(
+                "http://127.0.0.1:2501/system/status.json", auth=("root", "toor")
+            )
+            data = resp.json()
+            devices = data["kismet.system.devices.count"]
+            kismetmemory = data["kismet.system.memory.rss"] / 1024
             draw.text((0, 20), "D {:>7}".format(devices), font=fontbig, fill=255)
             draw.text(
                 (0, 44),
-                "Kismet mem: {:>4.0f}mb".format(kismetmemory / 1000),
+                "Kismet mem: {:>4.0f}mb".format(kismetmemory),
                 font=font,
                 fill=255,
             )
