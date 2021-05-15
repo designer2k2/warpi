@@ -1,5 +1,5 @@
 # warpi
-"GUI" script running on a Raspberry Pi 3b 
+"GUI" script running on a Raspberry Pi 4
 
 
 ## Setup:
