@@ -1,4 +1,3 @@
 adafruit-circuitpython-ssd1306
 gpsd-py3
-kismet-rest
 psutil
