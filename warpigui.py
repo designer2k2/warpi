@@ -35,7 +35,7 @@ import subprocess
 
 subprocess.run(["hwclock", "-s"])
 
-logging.debug("HW Clock synced")
+logging.debug(f"HW Clock synced")
 
 import board
 import busio
@@ -55,7 +55,7 @@ import requests
 # the konverter tool:
 import kismettowigle
 
-logging.debug("All imports done")
+logging.debug(f"All imports done")
 
 # Turn some logger to only show warnings:
 logging.getLogger("gpsd").setLevel(logging.WARNING)
@@ -73,7 +73,7 @@ disp.rotation = 2
 # Input Pin:
 GPIO.setmode(GPIO.BCM)
 
-logging.debug("IO Setup")
+logging.debug(f"IO Setup")
 
 # Interrupts:
 Counter = 0
@@ -81,9 +81,9 @@ Counter = 0
 
 def InterruptLeft(channel):
     global Counter
-    # Counter um eins erhoehen und ausgeben
+    # Count one up and print it
     Counter = Counter + 1
-    print("Counter " + str(Counter))
+    print(f"Counter: {Counter}")
 
 
 def InterruptB(channel):
@@ -123,7 +123,7 @@ GPIO.setup(23, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.add_event_detect(23, GPIO.RISING, callback=InterruptLeft, bouncetime=300)
 
 
-logging.debug("GPIO Setup done")
+logging.debug(f"GPIO Setup done")
 
 # Clear display.
 disp.fill(0)
@@ -145,7 +145,7 @@ draw.rectangle((0, 0, width, height), outline=0, fill=0)
 font = ImageFont.truetype("/home/kali/Minecraftia.ttf", 8)
 fontbig = ImageFont.truetype("/home/kali/arial.ttf", 24)
 
-logging.debug("Display setup done")
+logging.debug(f"Display setup done")
 
 # set country code
 # call("iw reg set AT", shell=True)
@@ -165,7 +165,7 @@ autostarted = False
 
 
 def startservice():
-    logging.info("Starting GPSD / Kismet")
+    logging.info(f"Starting GPSD / Kismet")
     subprocess.Popen(["gpsd", "/dev/serial0", "-s", "9600"])
     global kisuselog, kiserrlog, gpsrun, kissubproc
     kissubproc = subprocess.Popen(["kismet"], stdout=kisuselog, stderr=kiserrlog)
@@ -173,7 +173,7 @@ def startservice():
 
 
 def stopservice():
-    logging.info("Stopping GPSD / Kismet")
+    logging.info(f"Stopping GPSD / Kismet")
     global gpsrun, kissubproc
     gpsrun = False
     # Send a polite INT (CTRL+C)
@@ -181,17 +181,17 @@ def stopservice():
     try:
         kissubproc.wait(10)  # wait max 10sec to close
     except subprocess.TimeoutExpired:
-        logging.debug("timeout during kill kismet happened")
+        logging.debug(f"timeout during kill kismet happened")
     try:
         subprocess.run(
             ["killall", "gpsd", "--verbose", "--wait", "--signal", "QUIT"], timeout=5
         )
     except subprocess.TimeoutExpired:
-        logging.debug("timeout during kill gpsd happened")
+        logging.debug(f"timeout during kill gpsd happened")
 
 
 def freboot():
-    logging.info("Rebooting")
+    logging.info(f"Rebooting")
     global looping
     looping = False
     disp.fill(0)
@@ -203,23 +203,23 @@ def freboot():
 def fshutdown():
     global looping, kisuselog, kiserrlog
     looping = False
-    logging.info("Shutdown")
+    logging.info(f"Shutdown")
     stopservice()
     kisuselog.close()
     kiserrlog.close()
-    logging.debug("Kismet shutdown")
+    logging.debug(f"Kismet shutdown")
     draw.rectangle((0, 0, width, height), outline=0, fill=0)
-    draw.text((0, 20), "Convert", font=fontbig, fill=255)
+    draw.text((0, 20), f"Convert", font=fontbig, fill=255)
     disp.image(image)
     disp.show()
     convertall()
     draw.rectangle((0, 0, width, height), outline=0, fill=0)
-    draw.text((0, 20), "Shutdown", font=fontbig, fill=255)
+    draw.text((0, 20), f"Shutdown", font=fontbig, fill=255)
     disp.image(image)
     disp.show()
-    logging.debug("LCD Black")
+    logging.debug(f"LCD Black")
     subprocess.call("sudo shutdown -h now", shell=True)
-    logging.debug("shutdown -h triggered")
+    logging.debug(f"shutdown -h triggered")
     quit()
 
 
@@ -228,29 +228,26 @@ def list_files1(directory, extension):
 
 
 def convertall():
-    logging.debug("Convert kismets")
+    logging.debug(f"Convert kismets")
     # only do this when the kismet it not running
     if not gpsrun:
         list = list_files1("/media/usb/kismet/", "kismet")
 
         for them in list:
             # print(them)
-            csvfilename = ("".join(them.split(".")[:-1])) + (".CSV")
+            csvfilename = ("".join(them.split(".")[:-1])) + ".CSV"
             # print(csvfilename)
             if not os.path.exists("/media/usb/kismet/" + csvfilename):
-                logging.debug(
-                    "CSV from Kismet not found, create it " + str(csvfilename)
-                )
+                logging.debug(f"CSV from Kismet not found, create: {csvfilename}")
                 kismettowigle.main("/media/usb/kismet/" + them)
-    logging.debug("Convert from all done")
+    logging.debug(f"Convert from all done")
 
 
-logging.debug("All setup, go into loop")
+logging.debug(f"All setup, go into loop")
 
 looping = True
 
 while looping:
-
     draw.rectangle((0, 0, width, height), outline=0, fill=0)
 
     if life:
@@ -272,14 +269,14 @@ while looping:
         subprocess.call(
             "ps aux | sort -nrk 3,3 | head -n 10 >> /media/usb/highcpu.log", shell=True
         )
-        logging.debug("High CPU: " + str(cpu))
+        logging.debug(f"High CPU: {cpu}")
         sleeptime = 3
     else:
         sleeptime = 1
 
     draw.text(
         (0, 0),
-        "CPU: {:>4.0%}  M: {:>4.0%} T: {:5.1f}".format(cpu / 100, mem / 100, ct),
+        f"CPU: {cpu / 100:>4.0%}  M: {mem / 100:>4.0%} T: {ct:5.1f}",
         font=font,
         fill=255,
     )
@@ -293,9 +290,7 @@ while looping:
             packet = gpsd.get_current()
             draw.text(
                 (0, 10),
-                "GPS:  {}  SAT:  {:>3}  Use:  {:>3}".format(
-                    packet.mode, packet.sats, packet.sats_valid
-                ),
+                f"GPS: {packet.mode}  SAT: {packet.sats:>3}  Use: {packet.sats_valid:>3}",
                 font=font,
                 fill=255,
             )
@@ -313,15 +308,15 @@ while looping:
             data = resp.json()
             devices = data["kismet.system.devices.count"]
             kismetmemory = data["kismet.system.memory.rss"] / 1024
-            draw.text((0, 20), "D {:>7}".format(devices), font=fontbig, fill=255)
+            draw.text((0, 20), f"D {devices:>7}", font=fontbig, fill=255)
             draw.text(
                 (0, 44),
-                "Kismet mem: {:>4.0f}mb".format(kismetmemory),
+                f"Kismet mem: {kismetmemory:>4.0f}mb",
                 font=font,
                 fill=255,
             )
         except Exception as e:
-            logging.error("An exception occurred " + str(e))
+            logging.error(f"An exception occurred {e}")
 
     if not autostarted:
         if autostart > 0:
