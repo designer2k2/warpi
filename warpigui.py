@@ -293,7 +293,7 @@ while looping:
             packet = gpsd.get_current()
             draw.text(
                 (0, 10),
-                "GPS:  {:>3}  SAT:  {:>3}  Use:  {:>3}".format(
+                "GPS:  {}  SAT:  {:>3}  Use:  {:>3}".format(
                     packet.mode, packet.sats, packet.sats_valid
                 ),
                 font=font,
