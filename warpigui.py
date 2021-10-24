@@ -102,7 +102,7 @@ def InterruptDown(channel):
     stopservice()
 
 
-# 6 button A reboot
+# 5 button A reboot
 GPIO.setup(5, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.add_event_detect(5, GPIO.RISING, callback=InterruptA, bouncetime=300)
 
@@ -235,7 +235,7 @@ def convertall():
 
         for them in list:
             # print(them)
-            csvfilename = ("".join(them.split(".")[:-1])) + ".CSV"
+            csvfilename = kismettowigle.csvname(them)
             # print(csvfilename)
             if not os.path.exists("/media/usb/kismet/" + csvfilename):
                 logging.debug(f"CSV from Kismet not found, create: {csvfilename}")

@@ -31,10 +31,21 @@ def main(fname):
         logger.error(f"Kismet DB not found!! {fname}")
         raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), fname)
 
+    outfilename = csvname(fname)
+    logger.debug(f"saving to {outfilename}")
+
+    if os.path.exists(outfilename):
+        logger.error(f"CSV already exists, exit. {outfilename}")
+        raise FileExistsError(errno.EEXIST, os.strerror(errno.EEXIST), outfilename)
+
+    # open the csv:
+    outfile = open(outfilename, "w")
+
+    # connect to the kismet db file:
     conn = sqlite3.connect(fname)
     c = conn.cursor()
 
-    # first clean up: (this takes forever on slow media(usb sticks)
+    # first clean up: (this takes forever on slow media(old usb sticks)
     c.execute("VACUUM")
 
     # first lets see what we have:
@@ -47,16 +58,12 @@ def main(fname):
 
     dataextract = c.fetchall()
 
-    outfilename = ("".join(fname.split(".")[:-1])) + ".CSV"
-    logger.debug(f"saving to {outfilename}")
-
-    outfile = open(outfilename, "w")
-
     lines = 0
 
     # header:
     outfile.write(
-        "WigleWifi-1.4,appRelease=20190201,model=Kismet,release=2019.02.01.6,device=kismet,display=kismet,board=kismet,brand=kismet\n"
+        "WigleWifi-1.4,appRelease=20190201,model=Kismet,release=2019.02.01.6,device=kismet,display=kismet,"
+        "board=kismet,brand=kismet\n "
     )
     outfile.write(
         "MAC,SSID,AuthMode,FirstSeen,Channel,RSSI,CurrentLatitude,CurrentLongitude,AltitudeMeters,AccuracyMeters,Type\n"
@@ -71,13 +78,9 @@ def main(fname):
         mac = jsonextract["kismet.device.base.macaddr"]
         ssid = jsonextract["kismet.device.base.name"]
         auth = "[" + jsonextract["kismet.device.base.crypt"] + "]"
-        first = str(
-            datetime.fromtimestamp(jsonextract["kismet.device.base.first_time"])
-        )
+        first = str(datetime.fromtimestamp(jsonextract["kismet.device.base.first_time"]))
         chan = jsonextract["kismet.device.base.channel"]
-        rssi = jsonextract["kismet.device.base.signal"][
-            "kismet.common.signal.max_signal"
-        ]
+        rssi = jsonextract["kismet.device.base.signal"]["kismet.common.signal.max_signal"]
         lat = row[1]
         lon = row[2]
         alt = jsonextract["kismet.device.base.location"][
@@ -85,16 +88,11 @@ def main(fname):
         ]["kismet.common.location.alt"]
 
         # write a line
-        outfile.write(
-            f"{mac},{ssid},{auth},{first},{chan},{rssi},{lat},{lon},{alt},0,WIFI\n"
-        )
+        outfile.write(f"{mac},{ssid},{auth},{first},{chan},{rssi},{lat},{lon},{alt},0,WIFI\n")
         lines = lines + 1
 
     # now bluetooth:
-
-    c.execute(
-        'SELECT device,avg_lat,avg_lon FROM devices WHERE phyname="Bluetooth" AND min_lat != 0'
-    )
+    c.execute('SELECT device,avg_lat,avg_lon FROM devices WHERE phyname="Bluetooth" AND min_lat != 0')
 
     dataextract = c.fetchall()
 
@@ -107,9 +105,7 @@ def main(fname):
 
         mac = jsonextract["kismet.device.base.macaddr"]
         ssid = jsonextract["kismet.device.base.name"]
-        first = str(
-            datetime.fromtimestamp(jsonextract["kismet.device.base.first_time"])
-        )
+        first = str(datetime.fromtimestamp(jsonextract["kismet.device.base.first_time"]))
         lat = row[1]
         lon = row[2]
         alt = jsonextract["kismet.device.base.location"][
@@ -131,12 +127,15 @@ def main(fname):
     logger.debug(f"File done. {lines} WIFI AP´s, {lines2} Bluetooth Devices.")
 
 
+def csvname(kismetdbname: str) -> str:
+    outfilename = ("".join(kismetdbname.split(".")[:-1])) + ".CSV"
+    return outfilename
+
+
 def print_usage():
     print(f"Usage: *.kismet *.kismet *.kismet... ")
     print(f"Description:")
-    print(
-        f"Converts Kismetdb logfile with WIFI AP´s and Bluetooth devices to WiGLE.csv"
-    )
+    print(f"Converts Kismetdb logfile with WIFI AP´s and Bluetooth devices to WiGLE.csv")
 
 
 if __name__ == "__main__":
@@ -150,11 +149,9 @@ if __name__ == "__main__":
         print_usage()
         sys.exit(-1)
     else:
-
         for p in sys.argv[1:]:
             if p[0] != "-":
                 if not os.path.exists(p):
                     print(f"File not found: {p}")
                     continue
-
                 r = main(p)
