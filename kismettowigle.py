@@ -63,7 +63,7 @@ def main(fname):
     # header:
     outfile.write(
         "WigleWifi-1.4,appRelease=20190201,model=Kismet,release=2019.02.01.6,device=kismet,display=kismet,"
-        "board=kismet,brand=kismet\n "
+        "board=kismet,brand=kismet\n"
     )
     outfile.write(
         "MAC,SSID,AuthMode,FirstSeen,Channel,RSSI,CurrentLatitude,CurrentLongitude,AltitudeMeters,AccuracyMeters,Type\n"
