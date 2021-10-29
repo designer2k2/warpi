@@ -19,6 +19,10 @@
 # Warning:
 # there are only some failsafes, it will stop working on error!
 
+# The username and password must match with kismet_site.conf
+httpd_username = "root"
+httpd_password = "toor"
+
 import logging
 
 logging.basicConfig(
@@ -303,7 +307,7 @@ while looping:
             if packet.mode == 3:
                 draw.rectangle((115, 20, width - 2, 10), outline=255, fill=1)
             resp = requests.get(
-                "http://127.0.0.1:2501/system/status.json", auth=("root", "toor")
+                "http://127.0.0.1:2501/system/status.json", auth=(httpd_username, httpd_password)
             )
             data = resp.json()
             devices = data["kismet.system.devices.count"]

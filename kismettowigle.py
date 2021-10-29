@@ -52,9 +52,8 @@ def main(fname):
     c.execute("SELECT * FROM KISMET")
     logger.debug(c.fetchone())
 
-    c.execute(
-        'SELECT device,avg_lat,avg_lon FROM devices WHERE phyname="IEEE802.11" AND type="Wi-Fi AP" AND min_lat != 0'
-    )
+    # Get all WIFI AP´s where a GPS position is known:
+    c.execute('SELECT device,avg_lat,avg_lon FROM devices WHERE type="Wi-Fi AP" AND min_lat != 0')
 
     dataextract = c.fetchall()
 
@@ -77,21 +76,24 @@ def main(fname):
 
         mac = jsonextract["kismet.device.base.macaddr"]
         ssid = jsonextract["kismet.device.base.name"]
-        auth = "[" + jsonextract["kismet.device.base.crypt"] + "]"
+        try:
+            auth = WifiCryptToString(jsonextract["dot11.device"][
+                                         "dot11.device.last_beaconed_ssid_record"]["dot11.advertisedssid.crypt_set"])
+        except KeyError:
+            auth = f'[{jsonextract["kismet.device.base.crypt"]}]'
         first = str(datetime.fromtimestamp(jsonextract["kismet.device.base.first_time"]))
         chan = jsonextract["kismet.device.base.channel"]
         rssi = jsonextract["kismet.device.base.signal"]["kismet.common.signal.max_signal"]
         lat = row[1]
         lon = row[2]
         alt = jsonextract["kismet.device.base.location"][
-            "kismet.common.location.avg_loc"
-        ]["kismet.common.location.alt"]
+            "kismet.common.location.avg_loc"]["kismet.common.location.alt"]
 
         # write a line
         outfile.write(f"{mac},{ssid},{auth},{first},{chan},{rssi},{lat},{lon},{alt},0,WIFI\n")
         lines = lines + 1
 
-    # now bluetooth:
+    # now bluetooth devices where a GPS position is known:
     c.execute('SELECT device,avg_lat,avg_lon FROM devices WHERE phyname="Bluetooth" AND min_lat != 0')
 
     dataextract = c.fetchall()
@@ -102,15 +104,13 @@ def main(fname):
         jsonextract = json.loads(row[0])
 
         # lets find the interesting things:
-
         mac = jsonextract["kismet.device.base.macaddr"]
         ssid = jsonextract["kismet.device.base.name"]
         first = str(datetime.fromtimestamp(jsonextract["kismet.device.base.first_time"]))
         lat = row[1]
         lon = row[2]
         alt = jsonextract["kismet.device.base.location"][
-            "kismet.common.location.avg_loc"
-        ]["kismet.common.location.alt"]
+            "kismet.common.location.avg_loc"]["kismet.common.location.alt"]
         what = jsonextract["kismet.device.base.type"]
 
         if what == "BTLE":
@@ -125,6 +125,60 @@ def main(fname):
     outfile.close()
 
     logger.debug(f"File done. {lines} WIFI AP´s, {lines2} Bluetooth Devices.")
+
+
+# taken from kismet kismetdb_to_wiglecsv.cc:
+def WifiCryptToString(cryptset):
+    crypt_wps = (1 << 26)
+    crypt_protectmask = 0xFFFFF
+    crypt_wep = (1 << 1)
+    crypt_wpa = (1 << 6)
+    crypt_tkip = (1 << 5)
+    crypt_aes_ccm = (1 << 9)
+    crypt_psk = (1 << 7)
+    crypt_eap = (1 << 11)
+    crypt_wpa_owe = (1 << 17)
+    crypt_version_wpa = (1 << 27)
+    crypt_version_wpa2 = (1 << 28)
+    crypt_version_wpa3 = (1 << 29)
+
+    ss = ""
+    if cryptset & crypt_wps:
+        ss = "[WPS]"
+
+    if (cryptset & crypt_protectmask) == crypt_wep:
+        ss += "[WEP]"
+
+    if cryptset & crypt_wpa:
+        cryptver = ""
+
+        if cryptset & crypt_tkip:
+            if cryptset & crypt_aes_ccm:
+                cryptver = "CCMP+TKIP"
+            else:
+                cryptver = "TKIP"
+        elif cryptset & crypt_aes_ccm:
+            cryptver = "CCMP"
+
+        if cryptset & crypt_psk:
+            authver = "PSK"
+        elif cryptset & crypt_eap:
+            authver = "EAP"
+        elif cryptset & crypt_wpa_owe:
+            authver = "OWE"
+        else:
+            authver = "UNKNOWN"     # This is sometimes on WPA2?
+
+        if (cryptset & crypt_version_wpa) and (cryptset & crypt_version_wpa2):
+            ss += f"[WPA-{authver}-{cryptver}]"
+            ss += f"[WPA2-{authver}-{cryptver}]"
+        elif cryptset & crypt_version_wpa2:
+            ss += f"[WPA2-{authver}-{cryptver}]"
+        elif (cryptset & crypt_version_wpa3) or (cryptset & crypt_wpa_owe):
+            ss += f"[WPA3-{authver}-{cryptver}]"
+        else:
+            ss += f"[WPA-{authver}-{cryptver}]"
+    return ss
 
 
 def csvname(kismetdbname: str) -> str:
