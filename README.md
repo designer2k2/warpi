@@ -1,5 +1,5 @@
 # warpi
-"GUI" script running on a Raspberry Pi 4, handling the startup, conversion and shutdown procedure.
+"GUI" script running on a Raspberry Pi 4 (and 3b), handling the startup, conversion and shutdown procedure.
 
 
 ## Setup:
@@ -25,4 +25,4 @@ First line: CPU Load in % / Memory usage in % / CPU Temperature in °C
 Second line: GPS Status (3=3D lock, 2=2D lock, 1=No lock) / Satellites in View / Satellites used / Status  
 Third line: Devices found by kismet  
 Fourth line: Memory used by kismet  
-Firth line: Current time / Live blink  
+Fifth line: Current time / Live blink  
