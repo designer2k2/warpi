@@ -13,7 +13,7 @@ See the article on my website on how to setup the complete system: [designer2k2.
 ![User Interface](https://github.com/designer2k2/warpi/raw/master/warpi_gui.png)
 
 * Blue button: Shutdown. Stops Kismet, converts the file and then powers down the raspberry pi.
-* Red button: Reboot. Direct reboot from the raspberry pi.
+* Red button: Reboot. Reboot from the raspberry pi without file conversion.
 * Yellow push direction: Stop. Stops Kismet. Usefull to reload the config.
 * Green push direction: Start. Starts Kismet. Usefull after it has been stopped.
 
