@@ -2,9 +2,9 @@
 # encoding=utf-8
 
 # Menue for the wigle/replacement device
-# https://www.designer2k2.at 2021
+# https://www.designer2k2.at 2021-2022
 #
-# This is working on a rpi4
+# This is working on a rpi4 with kali 64bit os
 #
 # Libs:
 # gpsd https://github.com/MartijnBraam/gpsd-py3
@@ -55,9 +55,6 @@ import signal
 import RPi.GPIO as GPIO
 import json
 import requests
-
-# the konverter tool:
-import kismettowigle
 
 logging.debug(f"All imports done")
 
@@ -213,11 +210,6 @@ def fshutdown():
     kiserrlog.close()
     logging.debug(f"Kismet shutdown")
     draw.rectangle((0, 0, width, height), outline=0, fill=0)
-    draw.text((0, 20), f"Convert", font=fontbig, fill=255)
-    disp.image(image)
-    disp.show()
-    convertall()
-    draw.rectangle((0, 0, width, height), outline=0, fill=0)
     draw.text((0, 20), f"Shutdown", font=fontbig, fill=255)
     disp.image(image)
     disp.show()
@@ -229,22 +221,6 @@ def fshutdown():
 
 def list_files1(directory, extension):
     return (f for f in listdir(directory) if f.endswith("." + extension))
-
-
-def convertall():
-    logging.debug(f"Convert kismets")
-    # only do this when the kismet it not running
-    if not gpsrun:
-        list = list_files1("/media/usb/kismet/", "kismet")
-
-        for them in list:
-            # print(them)
-            csvfilename = kismettowigle.csvname(them)
-            # print(csvfilename)
-            if not os.path.exists("/media/usb/kismet/" + csvfilename):
-                logging.debug(f"CSV from Kismet not found, create: {csvfilename}")
-                kismettowigle.main("/media/usb/kismet/" + them)
-    logging.debug(f"Convert from all done")
 
 
 logging.debug(f"All setup, go into loop")
