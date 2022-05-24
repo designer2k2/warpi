@@ -49,7 +49,6 @@ import adafruit_ssd1306
 from time import sleep, localtime, strftime
 import gpsd
 import psutil
-from os import listdir
 import os
 import signal
 import RPi.GPIO as GPIO
@@ -80,26 +79,26 @@ logging.debug(f"IO Setup")
 Counter = 0
 
 
-def InterruptLeft(channel):
+def InterruptLeft(_):
     global Counter
     # Count one up and print it
     Counter = Counter + 1
     print(f"Counter: {Counter}")
 
 
-def InterruptB(channel):
+def InterruptB(_):
     fshutdown()
 
 
-def InterruptA(channel):
+def InterruptA(_):
     freboot()
 
 
-def InterruptUp(channel):
+def InterruptUp(_):
     startservice()
 
 
-def InterruptDown(channel):
+def InterruptDown(_):
     stopservice()
 
 
@@ -217,10 +216,6 @@ def fshutdown():
     subprocess.call("sudo shutdown -h now", shell=True)
     logging.debug(f"shutdown -h triggered")
     quit()
-
-
-def list_files1(directory, extension):
-    return (f for f in listdir(directory) if f.endswith("." + extension))
 
 
 logging.debug(f"All setup, go into loop")
