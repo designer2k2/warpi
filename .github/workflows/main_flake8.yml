@@ -19,6 +19,11 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
+    - name: Lint with black
+      run: |
+        pip install black
+        black --check --verbose .
+      continue-on-error: true
     - name: Lint with flake8
       run: |
         pip install flake8
