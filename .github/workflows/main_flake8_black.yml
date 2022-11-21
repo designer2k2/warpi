@@ -1,4 +1,4 @@
-name: flake8 check
+name: flake8/black check
 on:
   - push
   - pull_request
@@ -24,7 +24,7 @@ jobs:
         pip install flake8
         flake8 .
       continue-on-error: true
-    - name: Black lint
+    - name: Lint with black
       uses: psf/black@stable
       with:
         options: "--check --verbose"
