@@ -39,7 +39,7 @@ import subprocess
 
 subprocess.run(["hwclock", "-s"])
 
-logging.debug(f"HW Clock synced")
+logging.debug("HW Clock synced")
 
 import board
 import busio
@@ -55,7 +55,7 @@ import RPi.GPIO as GPIO
 import json
 import requests
 
-logging.debug(f"All imports done")
+logging.debug("All imports done")
 
 # Turn some logger to only show warnings:
 logging.getLogger("gpsd").setLevel(logging.WARNING)
@@ -73,7 +73,7 @@ disp.rotation = 2
 # Input Pin:
 GPIO.setmode(GPIO.BCM)
 
-logging.debug(f"IO Setup")
+logging.debug("IO Setup")
 
 # Interrupts:
 Counter = 0
@@ -123,7 +123,7 @@ GPIO.setup(23, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.add_event_detect(23, GPIO.RISING, callback=InterruptLeft, bouncetime=300)
 
 
-logging.debug(f"GPIO Setup done")
+logging.debug("GPIO Setup done")
 
 # Clear display.
 disp.fill(0)
@@ -145,7 +145,7 @@ draw.rectangle((0, 0, width, height), outline=0, fill=0)
 font = ImageFont.truetype("/home/kali/Minecraftia.ttf", 8)
 fontbig = ImageFont.truetype("/home/kali/arial.ttf", 24)
 
-logging.debug(f"Display setup done")
+logging.debug("Display setup done")
 
 # set country code
 # call("iw reg set AT", shell=True)
@@ -165,7 +165,7 @@ autostarted = False
 
 
 def startservice():
-    logging.info(f"Starting GPSD / Kismet")
+    logging.info("Starting GPSD / Kismet")
     subprocess.Popen(["gpsd", "/dev/serial0", "-s", "9600"])
     global kisuselog, kiserrlog, gpsrun, kissubproc
     kissubproc = subprocess.Popen(["kismet"], stdout=kisuselog, stderr=kiserrlog)
@@ -173,7 +173,7 @@ def startservice():
 
 
 def stopservice():
-    logging.info(f"Stopping GPSD / Kismet")
+    logging.info("Stopping GPSD / Kismet")
     global gpsrun, kissubproc
     gpsrun = False
     # Send a polite INT (CTRL+C)
@@ -181,17 +181,17 @@ def stopservice():
     try:
         kissubproc.wait(10)  # wait max 10sec to close
     except subprocess.TimeoutExpired:
-        logging.debug(f"timeout during kill kismet happened")
+        logging.debug("timeout during kill kismet happened")
     try:
         subprocess.run(
             ["killall", "gpsd", "--verbose", "--wait", "--signal", "QUIT"], timeout=5
         )
     except subprocess.TimeoutExpired:
-        logging.debug(f"timeout during kill gpsd happened")
+        logging.debug("timeout during kill gpsd happened")
 
 
 def freboot():
-    logging.info(f"Rebooting")
+    logging.info("Rebooting")
     global looping
     looping = False
     disp.fill(0)
@@ -203,22 +203,22 @@ def freboot():
 def fshutdown():
     global looping, kisuselog, kiserrlog
     looping = False
-    logging.info(f"Shutdown")
+    logging.info("Shutdown")
     stopservice()
     kisuselog.close()
     kiserrlog.close()
-    logging.debug(f"Kismet shutdown")
+    logging.debug("Kismet shutdown")
     draw.rectangle((0, 0, width, height), outline=0, fill=0)
-    draw.text((0, 20), f"Shutdown", font=fontbig, fill=255)
+    draw.text((0, 20), "Shutdown", font=fontbig, fill=255)
     disp.image(image)
     disp.show()
-    logging.debug(f"LCD Black")
+    logging.debug("LCD Black")
     subprocess.call("sudo shutdown -h now", shell=True)
-    logging.debug(f"shutdown -h triggered")
+    logging.debug("shutdown -h triggered")
     quit()
 
 
-logging.debug(f"All setup, go into loop")
+logging.debug("All setup, go into loop")
 
 looping = True
 
