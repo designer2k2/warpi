@@ -278,7 +278,8 @@ while looping:
             if packet.mode == 3:
                 draw.rectangle((115, 20, width - 2, 10), outline=255, fill=1)
             resp = requests.get(
-                "http://127.0.0.1:2501/system/status.json", auth=(httpd_username, httpd_password)
+                "http://127.0.0.1:2501/system/status.json",
+                auth=(httpd_username, httpd_password),
             )
             data = resp.json()
             devices = data["kismet.system.devices.count"]
