@@ -14,7 +14,6 @@ jobs:
     
     - name: Run the setup
       run: |
-        chmod 
         sudo ./warpi_setup.sh
         mkdir /media/usb/
         touch /media/usb/warpi.log
