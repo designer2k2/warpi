@@ -15,10 +15,10 @@ jobs:
     - name: Run the setup
       run: |
         sudo ./warpi_setup.sh
-        mkdir /media/usb/
-        touch /media/usb/warpi.log
+        sudo mkdir /media/usb/
+        sudo touch /media/usb/warpi.log
         
         
     - name: Run the python
       run: |
-        python warpigui.py
+        sudo python warpigui.py
