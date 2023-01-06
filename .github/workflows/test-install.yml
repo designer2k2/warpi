@@ -1,0 +1,22 @@
+name: test install all
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  run-program:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout this repo
+      uses: actions/checkout@v3
+    
+    - name: Run the setup
+      run: |
+        ./warpi_setup.sh
+        
+        
+    - name: Run the python
+      run: |
+        python warpigui.py
