@@ -1,8 +1,14 @@
-name: test install all
+name: test run setup
 
 on:
-  - push
-  - pull_request
+  push:
+    paths:
+        - 'warpi_setup.sh'
+        - '.github/workflows/test-install.yml'
+  pull_request:
+    paths:
+        - 'warpi_setup.sh'
+        - '.github/workflows/test-install.yml'
 
 jobs:
   run-program:
@@ -15,10 +21,3 @@ jobs:
     - name: Run the setup
       run: |
         sudo ./warpi_setup.sh
-        sudo mkdir /media/usb/
-        sudo touch /media/usb/warpi.log
-        
-        
-    - name: Run the python
-      run: |
-        sudo python warpigui.py
