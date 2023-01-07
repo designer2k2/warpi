@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # encoding=utf-8
 
-# Menue for the wigle/replacement device
+# Menu for the wigle/replacement device
 # https://www.designer2k2.at 2021-2022
 #
 # This is working on a rpi4 with kali 64bit os
@@ -155,7 +155,7 @@ life = True
 sleeptime = 1
 
 # globals for the log:
-kisuselog = open("/media/usb/kisuselog.log", "w")  # new everytime
+kisuselog = open("/media/usb/kisuselog.log", "w")  # new every time
 kiserrlog = open("/media/usb/kiserrlog.log", "a+")  # append
 kissubproc = 0
 
