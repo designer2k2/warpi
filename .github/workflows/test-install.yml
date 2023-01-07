@@ -1,0 +1,23 @@
+name: test run setup
+
+on:
+  push:
+    paths:
+        - 'warpi_setup.sh'
+        - '.github/workflows/test-install.yml'
+  pull_request:
+    paths:
+        - 'warpi_setup.sh'
+        - '.github/workflows/test-install.yml'
+
+jobs:
+  run-program:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout this repo
+      uses: actions/checkout@v3
+    
+    - name: Run the setup
+      run: |
+        sudo ./warpi_setup.sh
