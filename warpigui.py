@@ -54,6 +54,7 @@ import signal
 import RPi.GPIO as GPIO
 import json
 import requests
+import socket
 
 logging.debug("All imports done")
 
@@ -75,15 +76,18 @@ GPIO.setmode(GPIO.BCM)
 
 logging.debug("IO Setup")
 
-# Interrupts:
-Counter = 0
+# Page:
+Page = 1
 
 
 def InterruptLeft(_):
-    global Counter
-    # Count one up and print it
-    Counter = Counter + 1
-    print(f"Counter: {Counter}")
+    global Page
+    # Loop over Pager 1,2,3
+    if Page > 2:
+        Page = 1
+    else:
+        Page = Page + 1
+    print(f"Page to be shown: {Page}")
 
 
 def InterruptB(_):
@@ -118,10 +122,9 @@ GPIO.add_event_detect(22, GPIO.RISING, callback=InterruptUp, bouncetime=300)
 GPIO.setup(17, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.add_event_detect(17, GPIO.RISING, callback=InterruptDown, bouncetime=300)
 
-# Left dir button (only to check)
+# Left dir button (switch display info)
 GPIO.setup(23, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.add_event_detect(23, GPIO.RISING, callback=InterruptLeft, bouncetime=300)
-
 
 logging.debug("GPIO Setup done")
 
@@ -249,50 +252,103 @@ while looping:
     else:
         sleeptime = 1
 
-    draw.text(
-        (0, 0),
-        f"CPU: {cpu / 100:>4.0%}  M: {mem / 100:>4.0%} T: {ct:5.1f}",
-        font=font,
-        fill=255,
-    )
-    draw.text(
-        (0, 54), strftime("%Y-%m-%d   %H:%M:%S", localtime()), font=font, fill=255
-    )
+    if Page == 1:
+        # Page 1 is the main screen, it shows information while the device runs.
+        draw.text(
+            (0, 0),
+            f"CPU: {cpu / 100:>4.0%}  M: {mem / 100:>4.0%} T: {ct:5.1f}",
+            font=font,
+            fill=255,
+        )
+        draw.text(
+            (0, 54), strftime("%Y-%m-%d   %H:%M:%S", localtime()), font=font, fill=255
+        )
 
-    if gpsrun:
+        if gpsrun:
+            try:
+                gpsd.connect()
+                packet = gpsd.get_current()
+                draw.text(
+                    (0, 10),
+                    f"GPS: {packet.mode}  SAT: {packet.sats:>3}  Use: {packet.sats_valid:>3}",
+                    font=font,
+                    fill=255,
+                )
+                if packet.mode == 0:
+                    draw.rectangle((115, 20, width - 2, 10), outline=0, fill=0)
+                if packet.mode == 1:
+                    draw.rectangle((120, 18, width - 4, 14), outline=255, fill=0)
+                if packet.mode == 2:
+                    draw.rectangle((120, 18, width - 4, 14), outline=255, fill=1)
+                if packet.mode == 3:
+                    draw.rectangle((115, 20, width - 2, 10), outline=255, fill=1)
+                resp = requests.get(
+                    "http://127.0.0.1:2501/system/status.json",
+                    auth=(httpd_username, httpd_password),
+                )
+                data = resp.json()
+                devices = data["kismet.system.devices.count"]
+                kismetmemory = data["kismet.system.memory.rss"] / 1024
+                draw.text((0, 20), f"D {devices:>7}", font=fontbig, fill=255)
+                draw.text(
+                    (0, 44),
+                    f"Kismet mem: {kismetmemory:>4.0f}mb",
+                    font=font,
+                    fill=255,
+                )
+            except Exception as e:
+                logging.error(f"An exception occurred {e}")
+
+    if Page == 2:
+        # Page 2 shows the IP from the system
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.settimeout(0)
         try:
-            gpsd.connect()
-            packet = gpsd.get_current()
-            draw.text(
-                (0, 10),
-                f"GPS: {packet.mode}  SAT: {packet.sats:>3}  Use: {packet.sats_valid:>3}",
-                font=font,
-                fill=255,
-            )
-            if packet.mode == 0:
-                draw.rectangle((115, 20, width - 2, 10), outline=0, fill=0)
-            if packet.mode == 1:
-                draw.rectangle((120, 18, width - 4, 14), outline=255, fill=0)
-            if packet.mode == 2:
-                draw.rectangle((120, 18, width - 4, 14), outline=255, fill=1)
-            if packet.mode == 3:
-                draw.rectangle((115, 20, width - 2, 10), outline=255, fill=1)
-            resp = requests.get(
-                "http://127.0.0.1:2501/system/status.json",
-                auth=(httpd_username, httpd_password),
-            )
-            data = resp.json()
-            devices = data["kismet.system.devices.count"]
-            kismetmemory = data["kismet.system.memory.rss"] / 1024
-            draw.text((0, 20), f"D {devices:>7}", font=fontbig, fill=255)
-            draw.text(
-                (0, 44),
-                f"Kismet mem: {kismetmemory:>4.0f}mb",
-                font=font,
-                fill=255,
-            )
-        except Exception as e:
-            logging.error(f"An exception occurred {e}")
+            s.connect(('10.254.254.254', 1))
+            rpiIP = s.getsockname()[0]
+        except Exception:
+            rpiIP = '127.0.0.1'
+        finally:
+            s.close()
+        draw.text(
+            (0, 0),
+            f"SSH IP: {rpiIP}",
+            font=font,
+            fill=255,
+        )
+
+    if Page == 3:
+        # Page 3 gives a short info about the buttons
+        draw.text(
+            (0, 0),
+            f"#5 button = reboot",
+            font=font,
+            fill=255,
+        )
+        draw.text(
+            (0, 10),
+            f"#6 button = shutdown",
+            font=font,
+            fill=255,
+        )
+        draw.text(
+            (0, 20),
+            f"up arrow = start",
+            font=font,
+            fill=255,
+        )
+        draw.text(
+            (0, 30),
+            f"down arrow = stop",
+            font=font,
+            fill=255,
+        )
+        draw.text(
+            (0, 40),
+            f"left arrow = screen",
+            font=font,
+            fill=255,
+        )
 
     if not autostarted:
         if autostart > 0:
@@ -308,7 +364,6 @@ while looping:
 
     # wait a bit:
     sleep(sleeptime)
-
 
 while True:
     sleep(10)
