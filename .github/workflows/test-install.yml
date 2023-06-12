@@ -5,10 +5,12 @@ on:
     paths:
         - 'warpi_setup.sh'
         - '.github/workflows/test-install.yml'
+        - 'warpigui.py'
   pull_request:
     paths:
         - 'warpi_setup.sh'
         - '.github/workflows/test-install.yml'
+        - 'warpigui.py'
 
 jobs:
   run-program:

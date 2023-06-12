@@ -16,6 +16,7 @@ See the article on my website on how to setup the complete system: [designer2k2.
 * Red button: Reboot. Reboot from the raspberry pi without file conversion.
 * Yellow push direction: Stop. Stops Kismet. Useful to reload the config.
 * Green push direction: Start. Starts Kismet. Useful after it has been stopped.
+* Left arrow: switch between screens.
 
 ## Screen information:
 
