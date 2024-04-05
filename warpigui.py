@@ -275,13 +275,13 @@ while looping:
                     fill=255,
                 )
                 if packet.mode == 0:
-                    draw.rectangle((115, 20, width - 2, 10), outline=0, fill=0)
+                    draw.rectangle((115, 10, width - 2, 20), outline=0, fill=0)
                 if packet.mode == 1:
-                    draw.rectangle((120, 18, width - 4, 14), outline=255, fill=0)
+                    draw.rectangle((120, 14, width - 4, 18), outline=255, fill=0)
                 if packet.mode == 2:
-                    draw.rectangle((120, 18, width - 4, 14), outline=255, fill=1)
+                    draw.rectangle((120, 14, width - 4, 18), outline=255, fill=1)
                 if packet.mode == 3:
-                    draw.rectangle((115, 20, width - 2, 10), outline=255, fill=1)
+                    draw.rectangle((115, 10, width - 2, 20), outline=255, fill=1)
                 resp = requests.get(
                     "http://127.0.0.1:2501/system/status.json",
                     auth=(httpd_username, httpd_password),
