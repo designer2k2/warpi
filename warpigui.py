@@ -2,7 +2,7 @@
 # encoding=utf-8
 
 # Menu for the wigle/replacement device
-# https://www.designer2k2.at 2021-2022
+# https://www.designer2k2.at 2021-2025
 #
 # This is working on a rpi4 with kali 64bit os
 #
@@ -312,18 +312,13 @@ while looping:
             (20, "#6 button = shutdown"),
             (30, "up arrow = start"),
             (40, "down arrow = stop"),
-            (50, "left arrow = screen")
+            (50, "left arrow = screen"),
         ]
 
-        fill_color = 255 
+        fill_color = 255
 
         for y_offset, text_to_display in button_info_lines:
-                draw.text(
-                    (0, y_offset),
-                    text_to_display,
-                    font=font,
-                    fill=fill_color
-                )
+            draw.text((0, y_offset), text_to_display, font=font, fill=fill_color)
 
     if not autostarted:
         if autostart > 0:
