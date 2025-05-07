@@ -18,6 +18,7 @@ apt -y upgrade
 echo "Download warpi script"
 wget https://github.com/designer2k2/warpi/raw/master/warpigui.py
 wget https://github.com/designer2k2/warpi/raw/master/requirements.txt
+wget https://github.com/designer2k2/warpi/raw/master/PixeloidSans.ttf
 echo "Install warpi python requirements"
 pip3 install -r requirements.txt
 echo "finished"

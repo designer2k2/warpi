@@ -145,8 +145,8 @@ draw = ImageDraw.Draw(image)
 draw.rectangle((0, 0, width, height), outline=0, fill=0)
 
 # Load a font
-font = ImageFont.truetype("/home/kali/Minecraftia.ttf", 8)
-fontbig = ImageFont.truetype("/home/kali/arial.ttf", 24)
+font = ImageFont.truetype("/home/kali/PixeloidSans.ttf", 9)
+fontbig = ImageFont.truetype("/home/kali/PixeloidSans.ttf", 18)
 
 logging.debug("Display setup done")
 
