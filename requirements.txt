@@ -1,5 +1,4 @@
 adafruit-circuitpython-ssd1306
-gpsd-py3
 psutil
 RPi.GPIO
 board
