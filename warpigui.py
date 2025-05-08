@@ -263,13 +263,13 @@ while looping:
                 # --- Satellite Information ---
                 sats_visible = 0
                 sats_used = 0
-                if hasattr(session, 'satellites'):
+                if hasattr(session, "satellites"):
                     sats_visible = len(session.satellites)
                     sats_used = 0
                     if sats_visible > 0:
                         for sat_individual in session.satellites:
                             # Ensure 'used' attribute exists before checking
-                            if hasattr(sat_individual, 'used') and sat_individual.used:
+                            if hasattr(sat_individual, "used") and sat_individual.used:
                                 sats_used += 1
                 draw.text(
                     (0, 10),
@@ -328,18 +328,13 @@ while looping:
             (20, "#6 button = shutdown"),
             (30, "up arrow = start"),
             (40, "down arrow = stop"),
-            (50, "left arrow = screen")
+            (50, "left arrow = screen"),
         ]
 
         fill_color = 255
 
         for y_offset, text_to_display in button_info_lines:
-                draw.text(
-                    (0, y_offset),
-                    text_to_display,
-                    font=font,
-                    fill=fill_color
-                )
+            draw.text((0, y_offset), text_to_display, font=font, fill=fill_color)
 
     if not autostarted:
         if autostart > 0:
