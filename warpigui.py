@@ -2,7 +2,7 @@
 # encoding=utf-8
 
 # Menu for the wigle/replacement device
-# https://www.designer2k2.at 2021-2022
+# https://www.designer2k2.at 2021-2025
 #
 # This is working on a rpi4 with kali 64bit os
 #
@@ -19,11 +19,27 @@
 # Warning:
 # there are only some failsafes, it will stop working on error!
 
+import logging
+import board
+import busio
+from PIL import Image, ImageDraw, ImageFont
+import adafruit_ssd1306
+from time import sleep, localtime, strftime
+import gpsd
+import psutil
+import signal
+import RPi.GPIO as GPIO
+import requests
+import socket
+import subprocess
+
 # The username and password must match with kismet_site.conf
 httpd_username = "root"
 httpd_password = "toor"
 
-import logging
+logging.info("Startup")
+
+subprocess.run(["hwclock", "-s"])
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -31,30 +47,6 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M",
     filename="/media/usb/warpi.log",
 )
-
-logging.info("Startup")
-
-# Sync HW Clock::
-import subprocess
-
-subprocess.run(["hwclock", "-s"])
-
-logging.debug("HW Clock synced")
-
-import board
-import busio
-from digitalio import DigitalInOut, Direction, Pull
-from PIL import Image, ImageDraw, ImageFont
-import adafruit_ssd1306
-from time import sleep, localtime, strftime
-import gpsd
-import psutil
-import os
-import signal
-import RPi.GPIO as GPIO
-import json
-import requests
-import socket
 
 logging.debug("All imports done")
 
@@ -145,8 +137,8 @@ draw = ImageDraw.Draw(image)
 draw.rectangle((0, 0, width, height), outline=0, fill=0)
 
 # Load a font
-font = ImageFont.truetype("/home/kali/Minecraftia.ttf", 8)
-fontbig = ImageFont.truetype("/home/kali/arial.ttf", 24)
+font = ImageFont.truetype("/home/kali/PixeloidSans.ttf", 9)
+fontbig = ImageFont.truetype("/home/kali/PixeloidSans.ttf", 18)
 
 logging.debug("Display setup done")
 
@@ -228,20 +220,15 @@ looping = True
 while looping:
     draw.rectangle((0, 0, width, height), outline=0, fill=0)
 
-    if life:
-        draw.rectangle((120, 56, width, height), outline=0, fill=255)
-        life = False
-    else:
-        draw.rectangle((120, 56, width, height), outline=0, fill=0)
-        life = True
+    fill_color = 255 if life else 0
+    draw.rectangle((120, 56, width, height), outline=0, fill=fill_color)
+    life = not life
 
     cpu = psutil.cpu_percent()
-    mem = dict(psutil.virtual_memory()._asdict())["percent"]
-    swp = dict(psutil.swap_memory()._asdict())["percent"]
-    f = open("/sys/class/thermal/thermal_zone0/temp")
-    t = f.read()
-    f.close()
-    ct = int(t) / 1000.0
+    mem = psutil.virtual_memory().percent
+    with open("/sys/class/thermal/thermal_zone0/temp", "r") as f:
+        raw_value = f.read().strip()
+        ct = int(raw_value) / 1000.0
 
     if cpu > 50:
         subprocess.call(
@@ -253,7 +240,7 @@ while looping:
         sleeptime = 1
 
     if Page == 1:
-        # Page 1 is the main screen, it shows information while the device runs.
+        # Page 1 is the main screen, shows information while the device runs.
         draw.text(
             (0, 0),
             f"CPU: {cpu / 100:>4.0%}  M: {mem / 100:>4.0%} T: {ct:5.1f}",
@@ -302,7 +289,7 @@ while looping:
     if Page == 2:
         # Page 2 shows the IP from the system
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.settimeout(0)
+        s.settimeout(0.1)
         try:
             s.connect(("10.254.254.254", 1))
             rpiIP = s.getsockname()[0]
@@ -319,36 +306,19 @@ while looping:
 
     if Page == 3:
         # Page 3 gives a short info about the buttons
-        draw.text(
-            (0, 0),
-            f"#5 button = reboot",
-            font=font,
-            fill=255,
-        )
-        draw.text(
-            (0, 10),
-            f"#6 button = shutdown",
-            font=font,
-            fill=255,
-        )
-        draw.text(
-            (0, 20),
-            f"up arrow = start",
-            font=font,
-            fill=255,
-        )
-        draw.text(
-            (0, 30),
-            f"down arrow = stop",
-            font=font,
-            fill=255,
-        )
-        draw.text(
-            (0, 40),
-            f"left arrow = screen",
-            font=font,
-            fill=255,
-        )
+        button_info_lines = [
+            (0, "Button Info:"),
+            (10, "#5 button = reboot"),
+            (20, "#6 button = shutdown"),
+            (30, "up arrow = start"),
+            (40, "down arrow = stop"),
+            (50, "left arrow = screen"),
+        ]
+
+        fill_color = 255
+
+        for y_offset, text_to_display in button_info_lines:
+            draw.text((0, y_offset), text_to_display, font=font, fill=fill_color)
 
     if not autostarted:
         if autostart > 0:

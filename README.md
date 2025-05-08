@@ -1,6 +1,7 @@
 # warpi
-"GUI" script running on a Raspberry Pi 4 (and 3b), handling the startup, conversion and shutdown procedure.
+"GUI" script running on a Raspberry Pi 5, 4 and 3b, handling the startup, conversion and shutdown procedure.
 
+It is a user interface to run [Kismet](https://www.kismetwireless.net/) for [Wardriving](https://en.wikipedia.org/wiki/Wardriving).
 
 ## Setup:
 
@@ -24,6 +25,6 @@ See the article on my website on how to setup the complete system: [designer2k2.
 
 First line: CPU Load in % / Memory usage in % / CPU Temperature in °C  
 Second line: GPS Status (3=3D lock, 2=2D lock, 1=No lock) / Satellites in View / Satellites used / Status  
-Third line: Devices found by kismet  
-Fourth line: Memory used by kismet  
+Third line: Devices found by Kismet  
+Fourth line: Memory used by Kismet  
 Fifth line: Current time / Live blink  
