@@ -6,9 +6,6 @@
 #
 # This is working on a rpi4 with kali 64bit os
 #
-# Libs:
-# gpsd https://github.com/MartijnBraam/gpsd-py3
-#
 #
 # kismet conf must be correct!
 # gpsd will be called, check that it works with UART
@@ -25,13 +22,13 @@ import busio
 from PIL import Image, ImageDraw, ImageFont
 import adafruit_ssd1306
 from time import sleep, localtime, strftime
-import gpsd
 import psutil
 import signal
 import RPi.GPIO as GPIO
 import requests
 import socket
 import subprocess
+import gps
 
 # The username and password must match with kismet_site.conf
 httpd_username = "root"
@@ -145,6 +142,10 @@ logging.debug("Display setup done")
 # set country code
 # call("iw reg set AT", shell=True)
 
+# Global session object to connect to gpsd
+session = None
+gpssession = False
+
 gpsrun = False
 life = True
 sleeptime = 1
@@ -169,8 +170,9 @@ def startservice():
 
 def stopservice():
     logging.info("Stopping GPSD / Kismet")
-    global gpsrun, kissubproc
+    global gpsrun, kissubproc, gpssession
     gpsrun = False
+    gpssession = False
     # Send a polite INT (CTRL+C)
     kissubproc.send_signal(signal.SIGINT)
     try:
@@ -253,21 +255,35 @@ while looping:
 
         if gpsrun:
             try:
-                gpsd.connect()
-                packet = gpsd.get_current()
+                if not gpssession:
+                    session = gps.gps(mode=gps.WATCH_ENABLE)
+                    gpssession = True
+                session.read()
+                fix = session.fix
+                # --- Satellite Information ---
+                sats_visible = 0
+                sats_used = 0
+                if hasattr(session, "satellites"):
+                    sats_visible = len(session.satellites)
+                    sats_used = 0
+                    if sats_visible > 0:
+                        for sat_individual in session.satellites:
+                            # Ensure 'used' attribute exists before checking
+                            if hasattr(sat_individual, "used") and sat_individual.used:
+                                sats_used += 1
                 draw.text(
                     (0, 10),
-                    f"GPS: {packet.mode}  SAT: {packet.sats:>3}  Use: {packet.sats_valid:>3}",
+                    f"GPS: {fix.mode}  SAT: {sats_visible:>3}  Use: {sats_used:>3}",
                     font=font,
                     fill=255,
                 )
-                if packet.mode == 0:
+                if fix.mode == 0:
                     draw.rectangle((115, 10, width - 2, 20), outline=0, fill=0)
-                if packet.mode == 1:
+                if fix.mode == 1:
                     draw.rectangle((120, 14, width - 4, 18), outline=255, fill=0)
-                if packet.mode == 2:
+                if fix.mode == 2:
                     draw.rectangle((120, 14, width - 4, 18), outline=255, fill=1)
-                if packet.mode == 3:
+                if fix.mode == 3:
                     draw.rectangle((115, 10, width - 2, 20), outline=255, fill=1)
                 resp = requests.get(
                     "http://127.0.0.1:2501/system/status.json",
