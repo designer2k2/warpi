@@ -24,7 +24,7 @@ REQUIREMENTS_FILE="requirements.txt"
 # Create venv if it doesn't exist
 if [ ! -d "$VENV_DIR" ]; then
     echo "Creating virtual environment '$VENV_DIR'..."
-    python3 -m venv –system-site-packages "$VENV_DIR" || { echo "Failed to create virtual environment."; exit 1; }
+    python3 -m venv --system-site-packages "$VENV_DIR" || { echo "Failed to create virtual environment."; exit 1; }
     echo "Virtual environment '$VENV_DIR' created."
 fi
 
