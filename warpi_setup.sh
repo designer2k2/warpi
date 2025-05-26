@@ -19,7 +19,7 @@ wget https://github.com/designer2k2/warpi/raw/master/warpigui.py
 wget https://github.com/designer2k2/warpi/raw/master/requirements.txt
 wget https://github.com/designer2k2/warpi/raw/master/PixeloidSans.ttf
 echo "Install warpi python in venv with requirements"
-VENV_DIR="venv"
+VENV_DIR="venvwarpi"
 REQUIREMENTS_FILE="requirements.txt"
 # Create venv if it doesn't exist
 if [ ! -d "$VENV_DIR" ]; then
